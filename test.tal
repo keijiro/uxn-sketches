@@ -1,0 +1,60 @@
+( devices )
+
+|00 @System     [ &vector $2 &pad      $6 &r      $2 &g     $2 &b      $2 ]
+|20 @Screen     [ &vector $2 &width    $2 &height $2 &pad   $2 &x      $2 &y      $2 &addr $2 &pixel  $1 &sprite $1 ]
+
+( variables )
+
+|0000
+
+@scroll [ &x $2 &y $2 ]
+
+( program )
+
+|0100 ( -> )
+
+    ( theme )
+    #2ee5 .System/r DEO2
+    #23c5 .System/g DEO2
+    #4225 .System/b DEO2
+
+    ( vectors )
+    ;on-frame .Screen/vector DEO2
+
+    BRK
+
+@on-frame ( -> )
+    ( scrolling )
+    .scroll/x LDZ2 #0002 ADD2 .scroll/x STZ2
+    .scroll/y LDZ2 #0003 ADD2 .scroll/y STZ2
+
+    ( y = height )
+    .Screen/height DEI2 ,&y STR2
+
+    &loop-y
+        ( y -= 1 )
+        ,&y LDR2 #0001 SUB2 DUP2 ,&y STR2 .Screen/y DEO2
+
+        ( x = width )
+        .Screen/width DEI2 ,&x STR2
+
+        &loop-x
+            ( x -= 1 )
+            ,&x LDR2 #0001 SUB2 DUP2 ,&x STR2 .Screen/x DEO2
+
+            ( checker pattern )
+            ,&x LDR2 .scroll/x LDZ2 ADD2 SWP POP #05 SFT #01 AND
+            ,&y LDR2 .scroll/y LDZ2 ADD2 SWP POP #05 SFT #01 AND
+            EOR .Screen/pixel DEO
+
+            ( jump if x != 0 )
+            ,&x LDR2 ORA ,&loop-x JCN
+
+        ( jump if y != 0 )
+        ,&y LDR2 ORA ,&loop-y JCN
+
+    BRK
+
+    &x $2
+    &y $2
+
