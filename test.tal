@@ -28,33 +28,38 @@
     .scroll/x LDZ2 #0002 ADD2 .scroll/x STZ2
     .scroll/y LDZ2 #0003 ADD2 .scroll/y STZ2
 
-    ( y = height )
-    .Screen/height DEI2 ,&y STR2
+    ( y = 0 )
+    #0000 ,&y STR2
 
     &loop-y
-        ( y -= 1 )
-        ,&y LDR2 #0001 SUB2 DUP2 ,&y STR2 .Screen/y DEO2
+        ( y ++ )
+        ,&y LDR2 INC2 DUP2 ,&y STR2 .Screen/y DEO2
 
-        ( x = width )
-        .Screen/width DEI2 ,&x STR2
+        ( x = 0 )
+        #0000 ,&x STR2
+
+        ( checker pattern )
+        ,&y POPk LDR
+        .scroll/y INC LDZ ADD #20 AND
+        .scroll/x INC LDZ EOR ,&chk STR
 
         &loop-x
-            ( x -= 1 )
-            ,&x LDR2 #0001 SUB2 DUP2 ,&x STR2 .Screen/x DEO2
+            ( x ++ )
+            ,&x LDR2 INC2 DUP2 ,&x STR2 .Screen/x DEO2
 
             ( checker pattern )
-            ,&x LDR2 .scroll/x LDZ2 ADD2 SWP POP #05 SFT #01 AND
-            ,&y LDR2 .scroll/y LDZ2 ADD2 SWP POP #05 SFT #01 AND
-            EOR .Screen/pixel DEO
+            ,&chk LDR INC DUP ,&chk STR #05 SFT #01 AND
+            .Screen/pixel DEO
 
-            ( jump if x != 0 )
-            ,&x LDR2 ORA ,&loop-x JCN
+            ( jump if x < width )
+            ,&x LDR2 .Screen/width DEI2 LTH2 ,&loop-x JCN
 
-        ( jump if y != 0 )
-        ,&y LDR2 ORA ,&loop-y JCN
+        ( jump if y < height )
+        ,&y LDR2 .Screen/height DEI2 LTH2 ,&loop-y JCN
 
     BRK
 
     &x $2
     &y $2
+    &chk $1
 
