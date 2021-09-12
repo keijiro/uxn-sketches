@@ -1,3 +1,3 @@
 #!/bin/sh
-../uxn/bin/uxnasm checker.tal checker.rom
-../uxn/bin/uxnemu checker.rom
+./uxn/bin/uxnasm sprite.tal sprite.rom
+./uxn/bin/uxnemu sprite.rom

@@ -1,0 +1,44 @@
+( devices )
+
+|00 @System     [ &vector $2 &pad      $6 &r      $2 &g     $2 &b      $2 ]
+|20 @Screen     [ &vector $2 &width    $2 &height $2 &pad   $2 &x      $2 &y      $2 &addr $2 &pixel  $1 &sprite $1 ]
+
+( variables )
+
+|0000
+
+@ball [ &x $1 &y $1 &vx $1 &vy $1 ]
+
+( program )
+
+|0100 ( -> )
+
+    ( theme )
+    #2ee5 .System/r DEO2
+    #23c5 .System/g DEO2
+    #4225 .System/b DEO2
+
+    ( vectors )
+    ;on-frame .Screen/vector DEO2
+
+    BRK
+
+@on-frame ( -> )
+    #00 ;draw-ball JSR2
+
+    .ball/x LDZk #01 ADD SWP STZ
+    .ball/y LDZk #01 ADD SWP STZ
+
+    #01 ;draw-ball JSR2
+
+    BRK
+
+@draw-ball ( color )
+	#00 .ball/x LDZ .Screen/x DEO2
+	#00 .ball/y LDZ .Screen/y DEO2
+	;sprite .Screen/addr DEO2
+	.Screen/sprite DEO
+    JMP2r
+
+@sprite
+	ffff ffff ffff ffff
