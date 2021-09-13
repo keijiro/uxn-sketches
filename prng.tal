@@ -33,14 +33,14 @@
         ( r = rand, x = 0 )
         ;rand JSR2 #00
         &loop-x
-            ( x < r -> Screen/pixel )
-            GTHk .Screen/pixel DEO
             ( x -> Screen/x )
             DUP #00 SWP .Screen/x DEO2
-            ( loop until x == 0 )
+            ( x < r -> Screen/pixel )
+            GTHk .Screen/pixel DEO
+            ( loop until ++x == 0 )
             INC DUP ,&loop-x JCN
         POP2
-        ( loop until y == 0 )
+        ( loop until ++y == 0 )
         INC DUP ,&loop-y JCN
     POP
     BRK
