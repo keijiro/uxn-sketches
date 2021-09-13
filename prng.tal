@@ -25,22 +25,25 @@
     BRK
 
 @on-frame ( -- )
-    #00 ,&y STR
+    ( y = 0 )
+    #00
     &loop-y
-        #00 ,&y LDR .Screen/y DEO2
-        #00 ,&x STR
-        ;rand JSR2
+        ( y -> Screen/y )
+        DUP #00 SWP .Screen/y DEO2
+        ( r = rand, x = 0 )
+        ;rand JSR2 #00
         &loop-x
-            ,&x LDR GTHk .Screen/pixel DEO
-            #00 SWP .Screen/x DEO2
-            ,&x LDR INC DUP ,&x STR
-            ,&loop-x JCN
-        POP
-        ,&y LDR INC DUP ,&y STR
-        ,&loop-y JCN
+            ( x < r -> Screen/pixel )
+            GTHk .Screen/pixel DEO
+            ( x -> Screen/x )
+            DUP #00 SWP .Screen/x DEO2
+            ( loop until x == 0 )
+            INC DUP ,&loop-x JCN
+        POP2
+        ( loop until y == 0 )
+        INC DUP ,&loop-y JCN
+    POP
     BRK
-
-    &x $1 &y $1
 
 @rand ( -- number )
     ( 8-bit PRNG https://github.com/edrosten/8bit_rng )
