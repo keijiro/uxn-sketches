@@ -35,15 +35,15 @@
     BRK
 
 @on-frame ( -> )
-	;sprite .Screen/addr DEO2
+    ;sprite .Screen/addr DEO2
 
     ( clear )
     #00
     &ball-clear-loop
-	INC #00 OVR LDZ .Screen/x DEO2
+    INC #00 OVR LDZ .Screen/x DEO2
     INC
     INC #00 OVR LDZ .Screen/y DEO2
-	#00 .Screen/sprite DEO
+    #00 .Screen/sprite DEO
     INC DUP ,&ball-clear-loop JCN
     POP
 
@@ -58,17 +58,17 @@
     ( draw )
     #00
     &ball-draw-loop
-	INC #00 OVR LDZ .Screen/x DEO2
+    INC #00 OVR LDZ .Screen/x DEO2
     INC
     INC #00 OVR LDZ .Screen/y DEO2
-	#01 .Screen/sprite DEO
+    #01 .Screen/sprite DEO
     INC DUP ,&ball-draw-loop JCN
     POP
 
     BRK
 
 @sprite
-	3c7e ffff ffff 7e3c
+    3c7e ffff ffff 7e3c
 
 @rand ( -- number )
     ( 8-bit PRNG https://github.com/edrosten/8bit_rng )
