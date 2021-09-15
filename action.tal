@@ -1,0 +1,47 @@
+( devices )
+
+|00 @System     [ &vector $2 &pad    $6 &r      $2 &g   $2 &b $2 ]
+|20 @Screen     [ &vector $2 &width  $2 &height $2 &pad $2 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1 ]
+|80 @Controller [ &vector $2 &button $1 &key    $1 ] 
+
+( variables )
+
+|0000
+
+@pos $1
+
+( program )
+
+|0100 ( -> )
+
+    ( theme )
+    #2fe5 .System/r DEO2
+    #2fc5 .System/g DEO2
+    #4f25 .System/b DEO2
+
+    ( vectors )
+    ;on-frame .Screen/vector DEO2
+
+    BRK
+
+@on-frame ( -> )
+    ;sprite .Screen/addr DEO2
+
+    ( clear )
+    #00 #80      .Screen/x DEO2
+    #00 .pos LDZ .Screen/y DEO2
+    #00 .Screen/sprite DEO
+
+    ( move )
+	.Controller/button DEI #04 SFT #01 AND
+    #40 SFT .pos STZ
+
+    ( draw )
+    #00 #80      .Screen/x DEO2
+    #00 .pos LDZ .Screen/y DEO2
+    #01 .Screen/sprite DEO
+
+    BRK
+
+@sprite
+    3c7e ffff ffff 7e3c

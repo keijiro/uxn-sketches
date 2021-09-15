@@ -1,3 +1,3 @@
 #!/bin/sh
-./uxn/bin/uxnasm sprite.tal sprite.rom
-./uxn/bin/uxnemu sprite.rom
+./uxn/bin/uxnasm action.tal action.rom
+./uxn/bin/uxnemu action.rom
