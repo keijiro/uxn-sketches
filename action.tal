@@ -1,7 +1,7 @@
 ( constants )
 
-%gravity { #04 }
-%thrust { #40 }
+%gravity { #0004 }
+%thrust { #0040 }
 
 ( devices )
 
@@ -13,7 +13,7 @@
 
 |0000
 
-@player [ &y $2 &v $1 ]
+@player [ &y $2 &v $2 ]
 
 ( program )
 
@@ -26,7 +26,7 @@
 
     ( initialize )
     #08 #00 .player/y STZ2
-    thrust .player/v STZ
+    thrust  .player/v STZ2
 
     ( vectors )
     ;on-frame .Screen/vector DEO2
@@ -51,20 +51,14 @@
     ( reset player/v on up-key press )
     ;get-up-key JSR2
     #01 NEQ ,&no-up JCN
-    thrust .player/v STZ
+    thrust .player/v STZ2
     &no-up
 
     ( v += gravity )
-    .player/v LDZ
-    gravity ADD
-    DUP gravity LTH #ff MUL ORA ( prevent overflow )
-    .player/v STZ
+    .player/v LDZ2 gravity ADD2 .player/v STZ2
 
-    ( y += v - 0x80 )
-    .player/y LDZ2
-    #00 .player/v LDZ ADD2
-    #00 #80 SUB2
-    .player/y STZ2
+    ( y += v - 0080 )
+    .player/y LDZ2 .player/v LDZ2 ADD2 #0080 SUB2 .player/y STZ2
 
     JMP2r
 
