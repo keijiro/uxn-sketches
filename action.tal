@@ -14,6 +14,7 @@
 |0000
 
 @player [ &y $2 &v $2 ]
+@wall [ &x $2 &y $1 &h $1 ]
 
 ( program )
 
@@ -25,24 +26,89 @@
     #4f25 .System/b DEO2
 
     ( initialize )
+    #03 ;rand/a STA
     #08 #00 .player/y STZ2
     thrust  .player/v STZ2
+    ;init-wall JSR2
 
     ( vectors )
     ;on-frame .Screen/vector DEO2
 
     BRK
 
-@on-frame ( -> )
-    ;sprite .Screen/addr DEO2
+@init-wall ( -- )
+    .Screen/width DEI2 .wall/x STZ2
+    ;rand JSR2 #10 AND #08 ADD .wall/y STZ
+    #06 .wall/h STZ
+    JMP2r
 
+@draw-wall ( col -- )
+    STH
+
+    ( from 0 to y )
+    ( x*  ) .wall/x LDZ2
+    ( y   ) #00
+    ( h   ) .wall/y LDZ
+    ( col ) STHrk
+    ;draw-block JSR2
+
+    ( from y + h to height - y - h )
+    ( x*  ) .wall/x LDZ2
+    ( y   ) .wall/y LDZ .wall/h LDZ ADD
+    ( h   ) .Screen/height DEI2 #03 SFT NIP .wall/y LDZ SUB .wall/h LDZ SUB
+    ( col ) STHr
+    ;draw-block JSR2
+
+    JMP2r
+
+@move-wall ( -- )
+    .wall/x LDZ2
+    #0020 ADD2
+    DUP2 #ffc0 GTH2 ,&reset JCN
+    #0024 SUB2
+    .wall/x STZ2
+    JMP2r
+
+    &reset
+    POP2
+    ;init-wall
+    JMP2
+
+@draw-block ( x* y h col -- )
+    ,&col STR
+    STH STH ,&x STR2 STHr STHr
+
+    ;&sprite .Screen/addr DEO2
+
+    SWP #00 SWP #30 SFT2 ROT
+
+    &yloop
+    ROT ROT DUP2 .Screen/y DEO2
+    ,&col LDR ,&x LDR2
+    DUP2 .Screen/x DEO2 ROT DUP .Screen/sprite DEO ROT ROT #0008 ADD2
+    DUP2 .Screen/x DEO2 ROT DUP .Screen/sprite DEO ROT ROT #0008 ADD2
+    DUP2 .Screen/x DEO2 ROT DUP .Screen/sprite DEO ROT ROT #0008 ADD2
+         .Screen/x DEO2         .Screen/sprite DEO
+    #0008 ADD2 ROT #01 SUB DUP ,&yloop JCN
+
+    POP2 POP
+
+    JMP2r
+
+    &x $2 &col $1
+    &sprite ffff ffff ffff ffff
+
+@on-frame ( -> )
     ( clear )
+    #00 ;draw-wall JSR2
     #00 ;draw-player JSR2
 
-    ( move player )
+    ( move )
+    ;move-wall JSR2
     ;move-player JSR2
 
     ( draw )
+    #01 ;draw-wall JSR2
     #01 ;draw-player JSR2
 
     BRK
@@ -67,10 +133,28 @@
     JMP2r
 
 @draw-player ( color -- )
+    ;&sprite .Screen/addr DEO2
     #01 #00 .Screen/x DEO2
     .player/y LDZ2 #04 SFT2 .Screen/y DEO2
     .Screen/sprite DEO
     JMP2r
 
-@sprite
-    3c7e ffff ffff 7e3c
+    &sprite 3c7e ffff ffff 7e3c
+
+@rand ( -- number )
+    ( 8-bit PRNG https://github.com/edrosten/8bit_rng )
+
+    ( t = x ^ (x << 4) )
+    ,&x LDR DUP #40 SFT EOR
+    ( x = y )
+    ,&y LDR ,&x STR
+    ( y = z )
+    ,&z LDR ,&y STR
+    ( z = a )
+    ,&a LDR DUP ,&z STR
+    ( a = z ^ t ^ (z >> 1) ^ (t << 1) )
+    DUP #10 SFT EOR SWP DUP #01 SFT EOR EOR
+    DUP ,&a STR
+    JMP2r
+
+    &x $1 &y $1 &z $1 &a $1
