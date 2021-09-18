@@ -27,37 +27,67 @@
     #2fc5 .System/g DEO2
     #4f25 .System/b DEO2
 
-    ( initialize )
+    ( random seed )
     #03 ;rand/a STA
-    #08 #00 .player/y STZ2
-    thrust  .player/v STZ2
-    ;init-wall JSR2
 
-    ( vectors )
-    ;on-frame .Screen/vector DEO2
+    ( vector )
+    ;step-game .Screen/vector DEO2
 
+    ( game reset )
+    ;reset-game JSR2
     BRK
 
-@on-frame ( -> )
+@reset-game ( -> )
+    #0800  .player/y STZ2
+    thrust .player/v STZ2
+    ;init-wall JSR2
+    JMP2r
+
+@step-game ( -> )
     ( clear )
     #00 ;draw-wall JSR2
     #00 ;draw-player JSR2
+
+    ( collision )
+    ;check-collision JSR2 ,&kill JCN
 
     ( move )
     ;move-wall JSR2
     ;move-player JSR2
 
-    ( collision )
-    ;check-collision JSR2
-    #0010 .Screen/x DEO2
-    #0010 .Screen/y DEO2
-    .Screen/pixel DEOk DEOk DEOk DEO
-
     ( draw )
     #01 ;draw-wall JSR2
     #01 ;draw-player JSR2
-
     BRK
+
+    &kill
+    ( replace screen vector )
+    ;step-kill .Screen/vector DEO2
+    BRK
+
+@step-kill ( -> )
+    ( ws = count + 1 )
+    ,&count LDR INC
+    ( jump if ws > 0x20 )
+    DUP #20 GTH ,&term JCN
+    ( store count )
+    DUP ,&count STR
+
+    ( blink player )
+    #01 SFT #01 AND ;draw-player JSR2
+    BRK
+
+    &term
+    POP
+    ( count reset )
+    #00 ,&count STR
+    ( game reset )
+    ;reset-game JSR2
+    ( restore screen vector )
+    ;step-game .Screen/vector DEO2
+    BRK
+
+    &count $1
 
 ( wall )
 
@@ -144,16 +174,16 @@
 
 @check-collision ( -- hit )
     ( x-check )
-    ( check: wall/x - player/x < 32 )
-    .wall/x LDZ2 xorg SUB2 #0020 LTH2
+    ( check: wall/x - player/x + 24 < 32 )
+    .wall/x LDZ2 xorg SUB2 #0018 ADD2 #0020 LTH2
     ( return 0 on false )
     ,&x-ok JCN #00 JMP2r &x-ok
 
     ( y-check)
-    ( w = py >> 3 )
-    .player/y LDZ2 #07 SFT2 NIP
+    ( w = py >> 7 )
+    .player/y LDZ2 #07 SFT2 NIP INC
     ( check: w > wall/y )
-    DUP .wall/y LDZ GTH
+    DUP INC .wall/y LDZ GTH
     ( return 1 on false )
     ,&y-gth JCN POP #01 JMP2r &y-gth
     ( check: w > wall/y + wall/y )
