@@ -1,12 +1,13 @@
 ( constants )
 
 %gravity { #0004 }
-%thrust { #0040 }
+%thrust  { #0040 }
 
 ( devices )
 
-|00 @System     [ &vector $2 &pad    $6 &r      $2 &g   $2 &b $2 ]
-|20 @Screen     [ &vector $2 &width  $2 &height $2 &pad $2 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1 ]
+|00 @System     [ &vector $2 &pad    $6 &r      $2 &g     $2 &b      $2 ]
+|20 @Screen     [ &vector $2 &width  $2 &height $2 &auto  $1 &pad    $1
+                  &x      $2 &y      $2 &addr   $2 &pixel $1 &sprite $1 ]
 |80 @Controller [ &vector $2 &button $1 &key    $1 ] 
 
 ( variables )
@@ -14,7 +15,7 @@
 |0000
 
 @player [ &y $2 &v $2 ]
-@wall [ &x $2 &y $1 &h $1 ]
+@wall   [ &x $2 &y $1 &h $1 ]
 
 ( program )
 
@@ -36,11 +37,42 @@
 
     BRK
 
+@on-frame ( -> )
+    ( clear )
+    #00 ;draw-wall JSR2
+    #00 ;draw-player JSR2
+
+    ( move )
+    ;move-wall JSR2
+    ;move-player JSR2
+
+    ( draw )
+    #01 ;draw-wall JSR2
+    ;check-collision JSR2
+    #01 ;draw-player JSR2
+
+    BRK
+
+( wall )
+
 @init-wall ( -- )
     .Screen/width DEI2 .wall/x STZ2
     ;rand JSR2 #10 AND #08 ADD .wall/y STZ
     #06 .wall/h STZ
     JMP2r
+
+@move-wall ( -- )
+    .wall/x LDZ2
+    #0020 ADD2
+    DUP2 #ffc0 GTH2 ,&reset JCN
+    #0024 SUB2
+    .wall/x STZ2
+    JMP2r
+
+    &reset
+    POP2
+    ;init-wall
+    JMP2
 
 @draw-wall ( col -- )
     STH
@@ -61,57 +93,33 @@
 
     JMP2r
 
-@move-wall ( -- )
-    .wall/x LDZ2
-    #0020 ADD2
-    DUP2 #ffc0 GTH2 ,&reset JCN
-    #0024 SUB2
-    .wall/x STZ2
-    JMP2r
-
-    &reset
-    POP2
-    ;init-wall
-    JMP2
-
 @draw-block ( x* y h col -- )
+    ( store x and col )
     ,&col STR
     STH STH ,&x STR2 STHr STHr
 
+    ( set sprite and auto increment )
     ;&sprite .Screen/addr DEO2
+    #01 .Screen/auto DEO
 
-    SWP #00 SWP #30 SFT2 ROT
+    ( ws: y* )
+    ( rs: h  )
+    STH
+    #00 SWP #30 SFT2
 
     &yloop
-    ROT ROT DUP2 .Screen/y DEO2
-    ,&col LDR ,&x LDR2
-    DUP2 .Screen/x DEO2 ROT DUP .Screen/sprite DEO ROT ROT #0008 ADD2
-    DUP2 .Screen/x DEO2 ROT DUP .Screen/sprite DEO ROT ROT #0008 ADD2
-    DUP2 .Screen/x DEO2 ROT DUP .Screen/sprite DEO ROT ROT #0008 ADD2
-         .Screen/x DEO2         .Screen/sprite DEO
-    #0008 ADD2 ROT #01 SUB DUP ,&yloop JCN
+    ( set y   ) DUP2 .Screen/y DEO2
+    ( set x   ) ,&x LDR2 .Screen/x DEO2
+    ( draw x4 ) ,&col LDR .Screen/sprite DEOk DEOk DEOk DEO
+    ( y += 8  ) #0008 ADD2
+    ( loop until --h == 0 ) STHr #01 SUB STHk ,&yloop JCN
 
-    POP2 POP
-
-    JMP2r
+    POP2 POPr JMP2r
 
     &x $2 &col $1
     &sprite ffff ffff ffff ffff
 
-@on-frame ( -> )
-    ( clear )
-    #00 ;draw-wall JSR2
-    #00 ;draw-player JSR2
-
-    ( move )
-    ;move-wall JSR2
-    ;move-player JSR2
-
-    ( draw )
-    #01 ;draw-wall JSR2
-    #01 ;draw-player JSR2
-
-    BRK
+( player )
 
 @move-player ( -- )
     ( reset player/v on up-key press )
@@ -128,8 +136,7 @@
 
     JMP2r
 
-@get-up-key ( -- up )
-    .Controller/button DEI #04 SFT #01 AND
+@check-collision ( -- )
     JMP2r
 
 @draw-player ( color -- )
@@ -140,6 +147,12 @@
     JMP2r
 
     &sprite 3c7e ffff ffff 7e3c
+
+( misc )
+
+@get-up-key ( -- up )
+    .Controller/button DEI #04 SFT #01 AND
+    JMP2r
 
 @rand ( -- number )
     ( 8-bit PRNG https://github.com/edrosten/8bit_rng )
