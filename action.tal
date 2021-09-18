@@ -2,6 +2,7 @@
 
 %gravity { #0004 }
 %thrust  { #0040 }
+%xorg    { #0100 }
 
 ( devices )
 
@@ -46,9 +47,14 @@
     ;move-wall JSR2
     ;move-player JSR2
 
+    ( collision )
+    ;check-collision JSR2
+    #0010 .Screen/x DEO2
+    #0010 .Screen/y DEO2
+    .Screen/pixel DEOk DEOk DEOk DEO
+
     ( draw )
     #01 ;draw-wall JSR2
-    ;check-collision JSR2
     #01 ;draw-player JSR2
 
     BRK
@@ -58,7 +64,7 @@
 @init-wall ( -- )
     .Screen/width DEI2 .wall/x STZ2
     ;rand JSR2 #10 AND #08 ADD .wall/y STZ
-    #06 .wall/h STZ
+    #08 .wall/h STZ
     JMP2r
 
 @move-wall ( -- )
@@ -84,7 +90,7 @@
     ( col ) STHrk
     ;draw-block JSR2
 
-    ( from y + h to height - y - h )
+    ( from [y + h] to [height/8 - y - h] )
     ( x*  ) .wall/x LDZ2
     ( y   ) .wall/y LDZ .wall/h LDZ ADD
     ( h   ) .Screen/height DEI2 #03 SFT NIP .wall/y LDZ SUB .wall/h LDZ SUB
@@ -112,7 +118,7 @@
     ( set x   ) ,&x LDR2 .Screen/x DEO2
     ( draw x4 ) ,&col LDR .Screen/sprite DEOk DEOk DEOk DEO
     ( y += 8  ) #0008 ADD2
-    ( loop until --h == 0 ) STHr #01 SUB STHk ,&yloop JCN
+    ( loop until [--h == 0] ) STHr #01 SUB STHk ,&yloop JCN
 
     POP2 POPr JMP2r
 
@@ -136,12 +142,28 @@
 
     JMP2r
 
-@check-collision ( -- )
+@check-collision ( -- hit )
+    ( x-check )
+    ( check: wall/x - player/x < 32 )
+    .wall/x LDZ2 xorg SUB2 #0020 LTH2
+    ( return 0 on false )
+    ,&x-ok JCN #00 JMP2r &x-ok
+
+    ( y-check)
+    ( w = py >> 3 )
+    .player/y LDZ2 #07 SFT2 NIP
+    ( check: w > wall/y )
+    DUP .wall/y LDZ GTH
+    ( return 1 on false )
+    ,&y-gth JCN POP #01 JMP2r &y-gth
+    ( check: w > wall/y + wall/y )
+    .wall/y LDZ .wall/h LDZ ADD GTH
+    ( use the result as return value )
     JMP2r
 
 @draw-player ( color -- )
     ;&sprite .Screen/addr DEO2
-    #01 #00 .Screen/x DEO2
+    xorg .Screen/x DEO2
     .player/y LDZ2 #04 SFT2 .Screen/y DEO2
     .Screen/sprite DEO
     JMP2r
