@@ -1,3 +1,3 @@
 #!/bin/sh
-./uxn/bin/uxnasm action.tal action.rom
-./uxn/bin/uxnemu action.rom
+./uxn/bin/uxnasm flappy.tal flappy.rom
+./uxn/bin/uxnemu flappy.rom

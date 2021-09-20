@@ -1,0 +1,291 @@
+( flappy thing )
+( released under unlicense.org )
+
+( coding convention: roughly follows the standard forth and uxn conventions
+  but uses the Captal Letters to express short values )
+
+( macros )
+
+%+  { ADD } %-   { SUB }  %*  { MUL } %/   { DIV }
+%<  { LTH } %>   { GTH }  %=  { EQU } %!   { NEQ }
+%++ { ADD2 } %-- { SUB2 } %** { MUL2 } %// { DIV2 }
+%<< { LTH2 } %>> { GTH2 } %== { EQU2 } %!! { NEQ2 }
+%!~ { NEQk NIP }
+
+%NOT { #00 EQU }
+%DEC { #01 SUB }
+%8// { #03 SFT2 }
+%8** { #30 SFT2 }
+
+%RTN { JMP2r }
+
+( devices )
+
+|00 @system     [ &Vector $2 &pad    $6 &R      $2 &G     $2 &B      $2 ]
+|20 @screen     [ &Vector $2 &Width  $2 &Height $2 &auto  $1 &pad    $1
+                  &X      $2 &Y      $2 &Addr   $2 &pixel $1 &sprite $1 ]
+|80 @controller [ &Vector $2 &button $1 &key    $1 ]
+
+( constants )
+
+%Gravity { #0004 }
+%Thrust  { #0040 }
+%Playerx { #0100 }
+
+( variables )
+
+|0000
+
+@player [ &Y $2 &V $2 ]
+@wall   [ &X $2 &y $1 &h $1 ]
+
+( program )
+
+|0100 ( -> )
+
+    ( theme )
+    #2ff5 .system/R DEO2
+    #2ff5 .system/G DEO2
+    #4f05 .system/B DEO2
+
+    ( random seed )
+    #03 ;rand/a STA
+
+    ( vector )
+    ;step-game .screen/Vector DEO2
+
+    ( game reset )
+    ;reset-game JSR2
+
+BRK
+
+@reset-game ( -> )
+
+    ( player reset )
+    #0800  .player/Y STZ2
+    Thrust .player/V STZ2
+
+    ( wall reset )
+    ;init-wall JSR2
+
+RTN
+
+@step-game ( -> )
+
+    ( clear )
+    #00 ;draw-wall JSR2
+    #00 ;draw-player JSR2
+
+    ( collision )
+    ;check-collision JSR2 ,&kill JCN
+
+    ( update )
+    ;update-wall JSR2
+    ;update-player JSR2
+
+    ( draw )
+    #01 ;draw-wall JSR2
+    #02 ;draw-player JSR2
+
+BRK
+
+&kill
+    ( replace screen vector )
+    ;step-kill .screen/Vector DEO2
+
+BRK
+
+@step-kill ( -> )
+
+    ( increment count until 32 )
+    ,&count LDR INC
+    DUP #20 > ,&term JCN
+    DUP ,&count STR
+
+    ( blinking player with count&2 )
+    #02 AND ;draw-player JSR2
+
+BRK
+
+&term ( count -- )
+
+    ( reset all )
+    POP
+    #00 ,&count STR
+    ;reset-game JSR2
+    ;step-game .screen/Vector DEO2
+
+BRK
+
+    &count $1
+
+( wall )
+
+@init-wall ( -- )
+
+    ( X = Width )
+    .screen/Width DEI2 .wall/X STZ2
+
+    ( y = [rand & 0x1f] + 1 )
+    ;rand JSR2 #1f AND #01 + .wall/y STZ
+
+    ( h = 8 )
+    #08 .wall/h STZ
+
+RTN
+
+@update-wall ( -- )
+
+    ( X = X + 32 - 36 if X + 32 < 0 )
+    .wall/X LDZ2 #0020 ++
+    DUP2 #8000 >> ,&reset JCN
+    #0024 -- .wall/X STZ2
+
+RTN
+
+&reset ( X -- )
+
+    ( reset wall )
+    POP2 ;init-wall
+
+JMP2 ( JSR2 RTN )
+
+@draw-wall ( col -- )
+
+    STH ( use return stack to store col )
+
+    ( draw from 0 to y )
+    .wall/X LDZ2 #00 .wall/y LDZ STHrk ( ws: x y h c )
+    ;draw-block JSR2
+
+    ( from [y + h] to [height / 8 - y - h] )
+    ( x ) .wall/X LDZ2
+    ( y ) .wall/y LDZ .wall/h LDZ +
+    ( h ) .screen/Height DEI2 #03 SFT NIP .wall/y LDZ - .wall/h LDZ -
+    ( c ) STHr
+    ;draw-block JSR2
+
+RTN
+
+@draw-block ( X y h col -- )
+
+    ( store X and col )
+    ,&col STR
+    STH STH ,&X STR2 STHr STHr
+
+    ( ws: X y h )
+
+    ( set sprite and auto increment )
+    ;&sprite .screen/Addr DEO2
+    #01 .screen/auto DEO
+
+    STH ( use return stack to store h )
+    #00 SWP 8** ( y -- Y )
+
+    ( ws: X Y ) ( rs: h )
+
+    &yloop
+        ( set Y ) DUP2 .screen/Y DEO2
+        ( set X ) ,&X LDR2 .screen/X DEO2
+
+        ( draw sprites with auto increment )
+        ,&col LDR .screen/sprite DEOk DEOk DEOk DEO
+
+        ( Y+=8 ) #0008 ++
+
+        ( loop until --h == 0 )
+        STHr DEC STHk ,&yloop JCN
+
+    POP2 POPr
+
+RTN
+
+    &X $2 &col $1
+    &sprite ffff ffff ffff ffff
+
+( player )
+
+@update-player ( -- )
+
+    ( reset V on up-key press )
+    ;get-up-key JSR2 NOT ,&no-up JCN
+        Thrust .player/V STZ2
+    &no-up
+
+    ( V += Gravity )
+    .player/V LDZ2 Gravity ++ .player/V STZ2
+
+    ( Y += V - 0080 )
+    .player/Y LDZ2 .player/V LDZ2 ++ #0080 -- .player/Y STZ2
+
+RTN
+
+@check-collision ( -- hit )
+
+    ( x-check )
+
+    ( check: wall/X - player/X + 24 < 32 )
+    .wall/X LDZ2 Playerx -- #0018 ++ #0020 <<
+
+    ( return 0 on false )
+    ,&x-ok JCN
+        #00 RTN
+    &x-ok
+
+    ( y-check )
+
+    ( temp = py / 128 + 1 )
+    .player/Y LDZ2 #07 SFT2 NIP INC
+
+    ( check: temp+1 > wall/y )
+    DUP INC .wall/y LDZ >
+
+    ( return 1 on false )
+    ,&y-gth JCN
+        POP #01 RTN
+    &y-gth
+
+    ( check: temp > wall/y + wall/h )
+    .wall/y LDZ .wall/h LDZ + >
+
+    ( use result as return value )
+RTN
+
+@draw-player ( color -- )
+
+    ;&sprite .screen/Addr DEO2
+    Playerx .screen/X DEO2
+    .player/Y LDZ2 #04 SFT2 .screen/Y DEO2
+    .screen/sprite DEO
+
+RTN
+
+    &sprite 3c7e ffff ffff 7e3c
+
+( misc )
+
+@get-up-key ( -- up )
+
+    .controller/button DEI #04 SFT #01 AND
+
+RTN
+
+@rand ( -- number )
+
+    ( 8-bit PRNG https://github.com/edrosten/8bit_rng )
+
+    ( t = x ^ (x << 4) )
+    ,&x LDR DUP #40 SFT EOR
+    ( x = y )
+    ,&y LDR ,&x STR
+    ( y = z )
+    ,&z LDR ,&y STR
+    ( z = a )
+    ,&a LDR DUP ,&z STR
+    ( a = z ^ t ^ (z >> 1) ^ (t << 1) )
+    DUP #10 SFT EOR SWP DUP #01 SFT EOR EOR
+    DUP ,&a STR
+
+RTN
+
+    &x $1 &y $1 &z $1 &a $1
