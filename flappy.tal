@@ -4,7 +4,9 @@
 ( coding convention: roughly follows the standard forth and uxn conventions
   but uses the Captal Letters to express short values )
 
-( we use 4-bit fixed point numbers to express player's y-axis values )
+( we use special representations to express y-axis values )
+( player: 4-bit fixed point numbers )
+( wall: sprite row numbers [divided by 8] )
 
 ( macros )
 
@@ -233,7 +235,7 @@ RTN
 
     ( y-check )
 
-    ( temp = py / 128 + 1 )
+    ( temp = player/Y / 8 / 16 + 1 )
     .player/Y LDZ2 #07 SFT2 NIP INC
 
     ( check: temp+1 > wall/y )
