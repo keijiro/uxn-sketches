@@ -4,6 +4,8 @@
 ( coding convention: roughly follows the standard forth and uxn conventions
   but uses the Captal Letters to express short values )
 
+( we use 4-bit fixed point numbers to express player's y-axis values )
+
 ( macros )
 
 %+  { ADD } %-   { SUB }  %*  { MUL } %/   { DIV }
@@ -28,9 +30,11 @@
 
 ( constants )
 
-%Gravity { #0004 }
-%Thrust  { #0040 }
-%Playerx { #0100 }
+%Gravity  { #0004 }
+%Thrust   { #0040 }
+%Player-x { #0100 }
+%Start-y  { #0800 }
+%Scroll   { #0004 }
 
 ( variables )
 
@@ -62,7 +66,7 @@ BRK
 @reset-game ( -> )
 
     ( player reset )
-    #0800  .player/Y STZ2
+    Start-y .player/Y STZ2
     Thrust .player/V STZ2
 
     ( wall reset )
@@ -136,26 +140,20 @@ RTN
 
 @update-wall ( -- )
 
-    ( X = X + 32 - 36 if X + 32 < 0 )
-    .wall/X LDZ2 #0020 ++
-    DUP2 #8000 >> ,&reset JCN
-    #0024 -- .wall/X STZ2
+    ( jump to init-wall if X < -32 )
+    .wall/X LDZ2 #0020 ++ #8000 >> ;init-wall JCN2
+
+    ( X -= Scroll )
+    .wall/X LDZ2 Scroll -- .wall/X STZ2
 
 RTN
-
-&reset ( X -- )
-
-    ( reset wall )
-    POP2 ;init-wall
-
-JMP2 ( JSR2 RTN )
 
 @draw-wall ( col -- )
 
     STH ( use return stack to store col )
 
     ( draw from 0 to y )
-    .wall/X LDZ2 #00 .wall/y LDZ STHrk ( ws: x y h c )
+    [ .wall/X LDZ2 ] [ #00 ] [ .wall/y LDZ ] [ STHrk ] ( x y h c )
     ;draw-block JSR2
 
     ( from [y + h] to [height / 8 - y - h] )
@@ -171,7 +169,7 @@ RTN
 
     ( store X and col )
     ,&col STR
-    STH STH ,&X STR2 STHr STHr
+    [ STH STH ] ,&X STR2 [ STHr STHr ]
 
     ( ws: X y h )
 
@@ -185,13 +183,14 @@ RTN
     ( ws: X Y ) ( rs: h )
 
     &yloop
-        ( set Y ) DUP2 .screen/Y DEO2
-        ( set X ) ,&X LDR2 .screen/X DEO2
+        ( set position )
+        [ ,&X LDR2 .screen/X DEO2 ] [ DUP2 .screen/Y DEO2 ]
 
         ( draw sprites with auto increment )
         ,&col LDR .screen/sprite DEOk DEOk DEOk DEO
 
-        ( Y+=8 ) #0008 ++
+        ( next row )
+        #0008 ++
 
         ( loop until --h == 0 )
         STHr DEC STHk ,&yloop JCN
@@ -225,7 +224,7 @@ RTN
     ( x-check )
 
     ( check: wall/X - player/X + 24 < 32 )
-    .wall/X LDZ2 Playerx -- #0018 ++ #0020 <<
+    .wall/X LDZ2 Player-x -- #0018 ++ #0020 <<
 
     ( return 0 on false )
     ,&x-ok JCN
@@ -254,7 +253,7 @@ RTN
 @draw-player ( color -- )
 
     ;&sprite .screen/Addr DEO2
-    Playerx .screen/X DEO2
+    Player-x .screen/X DEO2
     .player/Y LDZ2 #04 SFT2 .screen/Y DEO2
     .screen/sprite DEO
 
