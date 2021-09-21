@@ -50,9 +50,9 @@
 |0100 ( -> )
 
     ( theme )
-    #2ff5 .system/R DEO2
-    #2ff5 .system/G DEO2
-    #4f05 .system/B DEO2
+    #07ff .system/R DEO2
+    #0e4f .system/G DEO2
+    #0c4f .system/B DEO2
 
     ( random seed )
     #03 ;rand/a STA
