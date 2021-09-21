@@ -161,7 +161,7 @@ RTN
     ( from [y + h] to [height / 8 - y - h] )
     ( x ) .wall/X LDZ2
     ( y ) .wall/y LDZ .wall/h LDZ +
-    ( h ) .screen/Height DEI2 #03 SFT NIP .wall/y LDZ - .wall/h LDZ -
+    ( h ) .screen/Height DEI2 #03 SFT2 NIP .wall/y LDZ - .wall/h LDZ -
     ( c ) STHr
     ;draw-block JSR2
 
@@ -175,9 +175,8 @@ RTN
 
     ( ws: X y h )
 
-    ( set sprite and auto increment )
-    ;&sprite .screen/Addr DEO2
-    #01 .screen/auto DEO
+    ( sprite auto increment )
+    #05 .screen/auto DEO
 
     STH ( use return stack to store h )
     #00 SWP 8** ( y -- Y )
@@ -189,20 +188,36 @@ RTN
         [ ,&X LDR2 .screen/X DEO2 ] [ DUP2 .screen/Y DEO2 ]
 
         ( draw sprites with auto increment )
+        ;&sprite2 STHr DEC STHk ,&hzero JCN
+        POP2 ;&sprite1
+        &hzero
+
+        .screen/Addr DEO2
         ,&col LDR .screen/sprite DEOk DEOk DEOk DEO
 
         ( next row )
         #0008 ++
 
         ( loop until --h == 0 )
-        STHr DEC STHk ,&yloop JCN
+        STHr STHk ,&yloop JCN
 
     POP2 POPr
 
 RTN
 
     &X $2 &col $1
-    &sprite ffff ffff ffff ffff
+
+    &sprite1
+    ffff ffff ffff ffff
+    ffaa 55aa 55aa 55ff
+    ffaa 55aa 55aa 55ff
+    ff01 0101 0101 01ff
+
+    &sprite2
+    7777 7777 7777 7777
+    55aa 55aa 55aa 55aa
+    55aa 55aa 55aa 55aa
+    0202 0202 0202 0202
 
 ( player )
 
@@ -254,14 +269,29 @@ RTN
 
 @draw-player ( color -- )
 
-    ;&sprite .screen/Addr DEO2
-    Player-x .screen/X DEO2
-    .player/Y LDZ2 #04 SFT2 .screen/Y DEO2
-    .screen/sprite DEO
+    STH ( use return stack to store color )
+
+    ( sprite settings: pattern address and auto increment )
+    [ ;&sprite .screen/Addr DEO2 ] [ #05 .screen/auto DEO ]
+
+    ( y-axis position )
+    .player/Y LDZ2 #04 SFT2
+
+    ( first row )
+    [ Player-x .screen/X DEO2 ] [ DUP2 .screen/Y DEO2 ]
+    STHrk .screen/sprite DEOk DEO
+
+    ( second row )
+    [ Player-x .screen/X DEO2 ] [ #0008 ++ .screen/Y DEO2 ]
+    STHr .screen/sprite DEOk DEO
 
 RTN
 
-    &sprite 3c7e ffff ffff 7e3c
+    &sprite
+    071f 3f7f 73f3 f3f3
+    e0f8 fcfe e6e7 e7e7
+    ffff f070 783c 1f07
+    ffff 0f0e 0e1c f8e0
 
 ( misc )
 
