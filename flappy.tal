@@ -17,7 +17,7 @@
 %!~ { NEQk NIP }
 
 %NOT { #00 EQU }
-%DEC { #01 SUB }
+%DEC { #01 SUB  }
 %8// { #03 SFT2 }
 %8** { #30 SFT2 }
 
@@ -67,6 +67,8 @@ BRK
 
 @reset-game ( -> )
 
+    ;clear-screen JSR2
+
     ( player reset )
     Start-y .player/Y STZ2
     Thrust .player/V STZ2
@@ -79,7 +81,6 @@ RTN
 @step-game ( -> )
 
     ( clear )
-    #00 ;draw-wall JSR2
     #00 ;draw-player JSR2
 
     ( collision )
@@ -90,7 +91,7 @@ RTN
     ;update-player JSR2
 
     ( draw )
-    #01 ;draw-wall JSR2
+    ;draw-wall JSR2
     #02 ;draw-player JSR2
 
 BRK
@@ -150,74 +151,75 @@ RTN
 
 RTN
 
-@draw-wall ( col -- )
+@draw-wall ( -- )
 
-    STH ( use return stack to store col )
+    ( pipe from 0 to [y - 1] )
+    [ .wall/X LDZ2 ] [ #00 ] [ .wall/y LDZ DEC ] ;draw-pipe JSR2
 
-    ( draw from 0 to y )
-    [ .wall/X LDZ2 ] [ #00 ] [ .wall/y LDZ ] [ STHrk ] ( x y h c )
-    ;draw-block JSR2
+    ( ring at [y - 1] )
+    [ .wall/X LDZ2 ] [ .wall/y LDZ DEC ] ;draw-ring JSR2
 
-    ( from [y + h] to [height / 8 - y - h] )
-    ( x ) .wall/X LDZ2
-    ( y ) .wall/y LDZ .wall/h LDZ +
-    ( h ) .screen/Height DEI2 #03 SFT2 NIP .wall/y LDZ - .wall/h LDZ -
-    ( c ) STHr
-    ;draw-block JSR2
+    ( ring at [y + h] )
+    [ .wall/X LDZ2 ] [ .wall/y LDZ .wall/h LDZ + ] ;draw-ring JSR2
+
+    ( pipe from [y + h] to [height / 8 - y - h] )
+    ( X ) .wall/X LDZ2
+    ( y ) .wall/y LDZ .wall/h LDZ + INC
+    ( h ) .screen/Height DEI2 8// NIP .wall/y LDZ - .wall/h LDZ -
+    ;draw-pipe JSR2
 
 RTN
 
-@draw-block ( X y h col -- )
+@draw-ring ( X y -- )
+    ( sprite position = X, y * 8 )
+    [ #00 SWP 8** .screen/Y DEO2 ] [ .screen/X DEO2 ]
 
-    ( store X and col )
-    ,&col STR
-    [ STH STH ] ,&X STR2 [ STHr STHr ]
+    ( sprite pattern and auto increment )
+    [ ;&sprite .screen/Addr DEO2 ] [ #05 .screen/auto DEO ]
 
-    ( ws: X y h )
+    ( draw sprites )
+    #01 .screen/sprite DEOk DEOk DEOk DEOk DEO
+
+RTN
+
+    &sprite
+    ffff ffff ffff ffff
+    ffaa 55aa 55aa 55ff
+    ffaa 55aa 55aa 55ff
+    ff01 0101 0101 01ff
+    0000 0000 0000 0000
+
+@draw-pipe ( X y h -- )
+
+    ( rs = h, &X = X, ws = Y * 8 )
+    [ STH ] [ ROT ROT ,&X STR2 ] [ #00 SWP 8** ]
 
     ( sprite auto increment )
     #05 .screen/auto DEO
-
-    STH ( use return stack to store h )
-    #00 SWP 8** ( y -- Y )
-
-    ( ws: X Y ) ( rs: h )
 
     &yloop
         ( set position )
         [ ,&X LDR2 .screen/X DEO2 ] [ DUP2 .screen/Y DEO2 ]
 
         ( draw sprites with auto increment )
-        ;&sprite2 STHr DEC STHk ,&hzero JCN
-        POP2 ;&sprite1
-        &hzero
+        ;&sprite .screen/Addr DEO2
+        #01 .screen/sprite DEOk DEOk DEOk DEOk DEO
 
-        .screen/Addr DEO2
-        ,&col LDR .screen/sprite DEOk DEOk DEOk DEO
-
-        ( next row )
-        #0008 ++
-
-        ( loop until --h == 0 )
-        STHr STHk ,&yloop JCN
+        #0008 ++                    ( next row )
+        STHr DEC STHk ,&yloop JCN   ( loop until --h == 0 )
 
     POP2 POPr
 
 RTN
 
-    &X $2 &col $1
+    &X $2
 
-    &sprite1
-    ffff ffff ffff ffff
-    ffaa 55aa 55aa 55ff
-    ffaa 55aa 55aa 55ff
-    ff01 0101 0101 01ff
-
-    &sprite2
+    &sprite
     7777 7777 7777 7777
     55aa 55aa 55aa 55aa
     55aa 55aa 55aa 55aa
     0202 0202 0202 0202
+    0000 0000 0000 0000
 
 ( player )
 
@@ -294,6 +296,38 @@ RTN
     ffff 0f0e 0e1c f8e0
 
 ( misc )
+
+@clear-screen ( -- )
+
+    ( sprite pattern and auto increment )
+    [ ;&sprite .screen/Addr DEO2 ] [ #01 .screen/auto DEO ]
+
+    ( col = screen/Width / 8 )
+    .screen/Width DEI2 8// NIP ,&col STR
+
+    ( ws: row count )
+    .screen/Height DEI2 8// NIP
+
+    &y-loop
+        DEC ( next row )
+
+        ( sprite position = 0, row * 8 )
+        [ #0000 .screen/X DEO2 ] [ DUP #00 SWP 8** .screen/Y DEO2 ]
+
+        ( ws: DEO params, rs: column count )
+        [ #00 .screen/sprite ] [ ,&col LDR STH ]
+
+        ( row fill )
+        &x-loop DEOk STHr DEC STHk ,&x-loop JCN
+
+        POP2 POPr           ( stack restore )
+        DUP ,&y-loop JCN    ( loop until row == 0 )
+    POP
+
+RTN
+
+    &col $1
+    &sprite 0000 0000 0000 0000
 
 @get-up-key ( -- up )
 
