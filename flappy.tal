@@ -182,10 +182,10 @@ RTN
 RTN
 
     &sprite
-    ffff ffff ffff ffff
-    ffaa 55aa 55aa 55ff
-    ffaa 55aa 55aa 55ff
-    ff01 0101 0101 01ff
+    ffef efef efef ff00
+    ffb9 bab9 bab9 ff00
+    ff40 9040 a840 ff00
+    ff01 0101 0101 ff00
     0000 0000 0000 0000
 
 @draw-pipe ( X y h -- )
@@ -214,10 +214,10 @@ RTN
     &X $2
 
     &sprite
-    7777 7777 7777 7777
-    55aa 55aa 55aa 55aa
-    55aa 55aa 55aa 55aa
-    0202 0202 0202 0202
+    3737 3737 3737 3737
+    dcdd dcdd dcdd dcdd
+    a054 a048 a054 a048
+    0404 0404 0404 0404
     0000 0000 0000 0000
 
 ( player )
