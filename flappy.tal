@@ -49,6 +49,8 @@
 @player [ &Y $2 &V $2 ]
 @wall   [ &X $2 &y $1 &h $1 ]
 
+|0080 @score $2
+
 ( program )
 
 |0100 ( -> )
@@ -74,6 +76,7 @@ BRK
     ;clear-screen JSR2
 
     ( player reset )
+    #40 ;draw-player JSR2
     Start-y .player/Y STZ2
     Thrust .player/V STZ2
 
@@ -91,12 +94,15 @@ BRK
     .wall/X LDZ2 #0180 ++ .wall/X STZ2
     #03 ;save-wall JSR2
 
+    ( reset score )
+    #0000 .score STZ2
+
 RTN
 
 @step-game ( -> )
 
     ( player update )
-    [ #00 ;draw-player JSR2 ] [ ;update-player JSR2 ]
+    [ #40 ;draw-player JSR2 ] [ ;update-player JSR2 ]
 
     ( 1st wall update )
     [ #01 ;load-wall JSR2 ] [ ;update-wall JSR2 ] [ #01 ;save-wall JSR2 ]
@@ -111,13 +117,18 @@ RTN
     [ ;check-collision JSR2 ,&kill JCN ] [ ;draw-wall JSR2 ]
 
     ( player draw )
-    #02 ;draw-player JSR2
+    #4a ;draw-player JSR2
+
+    ( score )
+    .score LDZ2 INC2 .score STZ2 
+    ;score LDZ2 #01 ;draw-score JSR2
 
 BRK
 
 &kill
     ( replace screen vector )
     ;step-kill .screen/Vector DEO2
+    .score LDZ2 #02 ;draw-score JSR2
 
 BRK
 
@@ -129,7 +140,7 @@ BRK
     DUP ,&count STR
 
     ( blinking player with count&2 )
-    #02 AND ;draw-player JSR2
+    #01 AND #41 ADD ;draw-player JSR2
 
 BRK
 
@@ -307,7 +318,7 @@ RTN
     STH ( use return stack to store color )
 
     ( sprite settings: pattern address and auto increment )
-    [ ;&sprite .screen/Addr DEO2 ] [ #05 .screen/auto DEO ]
+    [ ;&sprite #00 .player/V LDZ2 #0080 >> #50 SFT2 ADD2 .screen/Addr DEO2 ] [ #05 .screen/auto DEO ]
 
     ( y-axis position )
     .player/Y LDZ2 #04 SFT2
@@ -321,12 +332,16 @@ RTN
     STHr .screen/sprite DEOk DEO
 
 RTN
-
     &sprite
-    071f 3f7f 73f3 f3f3
-    e0f8 fcfe e6e7 e7e7
-    ffff f070 783c 1f07
-    ffff 0f0e 0e1c f8e0
+    0000 0000 0001 0307
+    0010 3874 fec0 c0c0
+    0f1c 3870 0000 0000
+    a070 7070 7030 1000
+    ( down )
+    1018 1c1e 0e05 0307
+    0010 3874 fec0 c0e0
+    0f1c 3870 0000 0000
+    e000 0000 0000 0000
 
 ( misc )
 
@@ -387,3 +402,33 @@ RTN
 RTN
 
     &x $1 &y $1 &z $1 &a $1
+
+@draw-score ( short* color -- )
+
+    #0010 .screen/X DEO2
+    #0010 .screen/Y DEO2
+
+    STH SWP 
+    DUP #04 SFT #00 SWP 8** ;font-hex ++ .screen/Addr DEO2
+        ( draw ) STHkr .screen/sprite DEO
+    #0f AND #00 SWP 8** ;font-hex ++ .screen/Addr DEO2
+    #0018 .screen/X DEO2
+        ( draw ) STHkr .screen/sprite DEO
+    DUP #04 SFT #00 SWP 8** ;font-hex ++ .screen/Addr DEO2
+    #0020 .screen/X DEO2
+        ( draw ) STHkr .screen/sprite DEO
+    #0f AND #00 SWP 8** ;font-hex ++ .screen/Addr DEO2
+    #0028 .screen/X DEO2
+        ( draw ) STHr .screen/sprite DEO
+
+RTN
+
+@font-hex
+    007c 8282 8282 827c 0030 1010 1010 1010
+    007c 8202 7c80 80fe 007c 8202 1c02 827c
+    000c 1424 4484 fe04 00fe 8080 7c02 827c
+    007c 8280 fc82 827c 007c 8202 1e02 0202
+    007c 8282 7c82 827c 007c 8282 7e02 827c
+    007c 8202 7e82 827e 00fc 8282 fc82 82fc
+    007c 8280 8080 827c 00fc 8282 8282 82fc
+    007c 8280 f080 827c 007c 8280 f080 8080
