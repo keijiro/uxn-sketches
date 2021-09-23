@@ -10,17 +10,16 @@
 
 ( macros )
 
-%+  { ADD } %-   { SUB }  %*  { MUL } %/   { DIV }
-%<  { LTH } %>   { GTH }  %=  { EQU } %!   { NEQ }
+%+ { ADD } %- { SUB } %* { MUL } %/ { DIV }
+%< { LTH } %> { GTH } %= { EQU } %! { NEQ }
+
 %++ { ADD2 } %-- { SUB2 } %** { MUL2 } %// { DIV2 }
 %<< { LTH2 } %>> { GTH2 } %== { EQU2 } %!! { NEQ2 }
-%!~ { NEQk NIP }
 
 %NOT { #00 EQU }
 %DEC { #01 SUB  }
 %8// { #03 SFT2 }
 %8** { #30 SFT2 }
-
 %RTN { JMP2r }
 
 ( devices )
