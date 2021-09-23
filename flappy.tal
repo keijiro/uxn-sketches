@@ -17,9 +17,14 @@
 %<< { LTH2 } %>> { GTH2 } %== { EQU2 } %!! { NEQ2 }
 
 %NOT { #00 EQU }
-%DEC { #01 SUB  }
-%8// { #03 SFT2 }
-%8** { #30 SFT2 }
+%DEC { #01 SUB } %DEC2 { #0001 SUB2 }
+
+%2* { #10 SFT } %4* { #20 SFT } %8* { #30 SFT }
+%2/ { #01 SFT } %4/ { #02 SFT } %8/ { #03 SFT }
+
+%2** { #10 SFT2 } %4** { #20 SFT2 } %8** { #30 SFT2 }
+%2// { #01 SFT2 } %4// { #02 SFT2 } %8// { #03 SFT2 }
+
 %RTN { JMP2r }
 
 ( devices )
@@ -72,25 +77,40 @@ BRK
     Start-y .player/Y STZ2
     Thrust .player/V STZ2
 
-    ( wall reset )
+    ( 1st wall )
     ;init-wall JSR2
+    #01 ;save-wall JSR2
+
+    ( 2nd wall )
+    ;init-wall JSR2
+    .wall/X LDZ2 #00c0 ++ .wall/X STZ2
+    #02 ;save-wall JSR2
+
+    ( 3rd wall )
+    ;init-wall JSR2
+    .wall/X LDZ2 #0180 ++ .wall/X STZ2
+    #03 ;save-wall JSR2
 
 RTN
 
 @step-game ( -> )
 
-    ( clear )
-    #00 ;draw-player JSR2
+    ( player update )
+    [ #00 ;draw-player JSR2 ] [ ;update-player JSR2 ]
 
-    ( collision )
-    ;check-collision JSR2 ,&kill JCN
+    ( 1st wall update )
+    [ #01 ;load-wall JSR2 ] [ ;update-wall JSR2 ] [ #01 ;save-wall JSR2 ]
+    [ ;check-collision JSR2 ,&kill JCN ] [ ;draw-wall JSR2 ]
 
-    ( update )
-    ;update-wall JSR2
-    ;update-player JSR2
+    ( 2nd wall update )
+    [ #02 ;load-wall JSR2 ] [ ;update-wall JSR2 ] [ #02 ;save-wall JSR2 ]
+    [ ;check-collision JSR2 ,&kill JCN ] [ ;draw-wall JSR2 ]
 
-    ( draw )
-    ;draw-wall JSR2
+    ( 3rd wall update )
+    [ #03 ;load-wall JSR2 ] [ ;update-wall JSR2 ] [ #03 ;save-wall JSR2 ]
+    [ ;check-collision JSR2 ,&kill JCN ] [ ;draw-wall JSR2 ]
+
+    ( player draw )
     #02 ;draw-player JSR2
 
 BRK
@@ -219,6 +239,20 @@ RTN
     a054 a048 a054 a048
     0404 0404 0404 0404
     0000 0000 0000 0000
+
+( wall multiplexer )
+
+@save-wall ( idx -- )
+    4* .wall/X +                    ( address of wall[idx] )
+    DUP .wall/X LDZ2 ROT STZ2       ( copy first word )
+    INC INC .wall/y LDZ2 ROT STZ2   ( copy second word )
+RTN
+
+@load-wall ( idx -- )
+    4* .wall/X +                    ( address of wall[idx] )
+    LDZ2k .wall/X STZ2              ( copy first word )
+    INC INC LDZ2 .wall/y STZ2       ( copy second word )
+RTN
 
 ( player )
 
